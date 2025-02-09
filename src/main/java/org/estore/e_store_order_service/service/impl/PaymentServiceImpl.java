@@ -11,8 +11,10 @@ import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.coyote.BadRequestException;
 import org.estore.e_store_order_service.enums.OrderStatus;
 import org.estore.e_store_order_service.exceptions.FailureException;
+import org.estore.e_store_order_service.exceptions.InvalidRequestException;
 import org.estore.e_store_order_service.exceptions.ResourceNotFoundException;
 import org.estore.e_store_order_service.external.RazorpayExternalClient;
 import org.estore.e_store_order_service.model.*;
@@ -90,8 +92,14 @@ public class PaymentServiceImpl implements PaymentService {
 
         OrderRequestEO orderRequestEO = orderRequestRepo.findByRazorpayOrderId(orderId);
 
-        if(orderRequestEO == null){
+        if (orderRequestEO == null) {
             throw new ResourceNotFoundException("Invalid order Id");
+        }
+
+        Order prevOrder = orderRepo.findByRazorpayOrderId(orderRequestEO.getRazorpayOrderId());
+
+        if (prevOrder != null) {
+            throw new InvalidRequestException("This action can not be performed");
         }
 
         TransactionEO transactionEO = new TransactionEO();
@@ -119,14 +127,13 @@ public class PaymentServiceImpl implements PaymentService {
 
         OrderEO savedOrder = orderRepo.save(orderEO);
 
-        List<ProductEntityEO> products
-                    = productEnitityRepo.findByOrderId(orderRequestEO.getId());
+        List<ProductEntityEO> products = productEnitityRepo.findByOrderId(orderRequestEO.getId());
 
-        if(products.isEmpty()){
+        if (products.isEmpty()) {
             throw new FailureException("Order can not be placed");
         }
 
-        products.forEach(e ->{
+        products.forEach(e -> {
             OrderPlaceEntityEO entityEO = new OrderPlaceEntityEO();
             entityEO.setProductResponse(e.getProductResponse());
             entityEO.setQuantity(e.getQuantity());
@@ -135,10 +142,9 @@ public class PaymentServiceImpl implements PaymentService {
             orderPlacedProductRepo.save(entityEO);
         });
 
-
         OrderAddressEO orderAddressEO = orderAddressRepo.findByOrderId(orderRequestEO.getId());
 
-        if(orderAddressEO == null){
+        if (orderAddressEO == null) {
             throw new FailureException("Order can not be placed");
         }
 
@@ -158,14 +164,11 @@ public class PaymentServiceImpl implements PaymentService {
 
         carts.forEach(cartRepo::delete);
 
-        if(savedOrder ==null || saved ==null){
+        if (savedOrder == null || saved == null) {
             throw new FailureException("Order can not be placed");
         }
-
 
         return saved;
 
     }
 }
-
-
