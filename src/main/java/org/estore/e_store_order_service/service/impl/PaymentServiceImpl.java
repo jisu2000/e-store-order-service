@@ -96,9 +96,9 @@ public class PaymentServiceImpl implements PaymentService {
             throw new ResourceNotFoundException("Invalid order Id");
         }
 
-        OrderEO prevOrder = orderRepo.findByRazorpayOrderId(orderRequestEO.getRazorpayOrderId());
+        List<OrderEO> prevOrder = orderRepo.findByRazorpayOrderId(orderRequestEO.getRazorpayOrderId());
 
-        if (prevOrder != null) {
+        if (!prevOrder.isEmpty()) {
             throw new InvalidRequestException("This action can not be performed");
         }
 
